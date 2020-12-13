@@ -4,7 +4,7 @@
   let keyboard = {};
   let tree;
   let crate,crateTexture,crateNormalMap,crateBumpMap;
-  let player = {height:0.2,speed:0.03,turnSpeed:Math.PI * 0.01};
+  let player = {height:0.2,speed:0.03,turnSpeed:Math.PI * 0.01,canShoot:0};
   
   let models = {
     stall:{
@@ -27,10 +27,17 @@
       mtl:"models/uzi.mtl",
       mesh:null,
       castShadow:false
+    },
+    uziBullet:{
+      obj:"models/ammo_uzi.obj",
+      mtl:"models/ammo_uzi.mtl",
+      mesh:null,
+      castShadow:false
     }
   }
 
   let meshes ={}
+  let bullets = [];
 
 
   let loadingScreen = {
@@ -212,6 +219,26 @@
     mesh.rotation.x += 0.001;
     mesh.rotation.y += 0.001;
     crate.rotation.y += 0.01;
+    // console.log("bullets",bullets);
+
+    // if (meshes.bullet !== undefined) {
+    //   if (meshes.bullet.velocity !== undefined) {
+    //     console.log(meshes.bullet);
+    //     meshes.bullet.position.add(meshes.bullet.velocity);
+    //   }
+    // }
+    // for (let i = 0; i < bullets.length; i++) {
+    //   if (bullets[i] === undefined) { continue; }
+    //   if (bullets[i].alive == false){ 
+    //     bullets.splice(i,1);
+    //     continue; 
+    //   }
+    //   console.log("bulleys",bullets);
+    //   bullets[i].position.add(bullets[i].velocity);
+    //   meshes.bullet.position.add(bullets[i].velocity);
+      
+    // }
+
     
     if (keyboard[87]) {  //W
       camera.position.x -= Math.sin(camera.rotation.y) * player.speed;
@@ -241,6 +268,53 @@
     if (keyboard[39]) {  //left
       camera.rotation.y -= player.turnSpeed;
     }
+    fly();
+
+    if (keyboard[32] && player.canShoot <= 0) {  //space
+      
+      // meshes["bullet"].velocity = new THREE.Vector3(
+      //   -Math.sin(camera.rotation.y),
+      //   0,
+      //   Math.cos(camera.rotation.y)
+      // );
+      let newBullet = models.uziBullet.mesh.clone();
+      newBullet.position.set(
+        meshes.weapon.position.x,
+        meshes.weapon.position.y+0.40,
+        meshes.weapon.position.z-0.140
+      );
+      newBullet.scale.set(10,10,10);
+      newBullet.rotation.x += Math.PI/2;
+      newBullet.alive = true;
+      newBullet.velocity = new THREE.Vector3(
+        -Math.sin(camera.rotation.y),
+        0,
+        -Math.cos(camera.rotation.y)
+      );
+      bullets.push(newBullet);
+      scene.add(newBullet);
+       player.canShoot = 20;
+      // meshes.bullet.position.set(
+      //   meshes.weapon.position.x,
+      //   meshes.weapon.position.y+0.40,
+      //   meshes.weapon.position.z-0.140
+      // );
+
+      // meshes["bullet"].alive = true;
+      // bullets.push(meshes.bullet);
+      // console.log("bulleys",bullets);
+      // scene.add(meshes.bullet);
+      
+      console.log("nb",newBullet);
+      setTimeout(() => {
+        newBullet.alive = false;
+        scene.remove(newBullet);
+        // meshes["bullet"].alive = false;
+        // scene.remove(meshes.bullet);
+      }, 3000);
+
+    }
+    if(player.canShoot >= 0){player.canShoot -= 1}
     // meshes["weapon"].position.x = camera.position.x;
     // meshes["weapon"].position.y = camera.position.y;
     // meshes["weapon"].position.z = camera.position.z - 0.5;
@@ -264,6 +338,30 @@
 
   }
 
+  fly = ()=>{
+    console.log("fly",bullets);
+     for (let i = 0; i < bullets.length; i++) {
+      if (bullets[i] === undefined) { continue; }
+      if (bullets[i].alive == false){ 
+        bullets.splice(i,1);
+        continue; 
+      }
+      bullets[i].position.add(bullets[i].velocity);
+      // meshes.bullet.position.add(bullets[i].velocity);
+      
+    }
+
+    // let velo  = new THREE.Vector3(
+    //     -Math.sin(camera.rotation.y),
+    //     0,
+    //     -Math.cos(camera.rotation.y)
+    //   );
+    //   console.log('velo',velo);
+    // if(meshes["bullet"].alive !== undefined){
+    //   meshes["bullet"].position.add(velo);
+    // }
+  }
+
   onResourcesLoaded =()=>{
     meshes["tree1"] = models.tree.mesh.clone();
     meshes["tree2"] = models.tree.mesh.clone();
@@ -272,6 +370,8 @@
     meshes["stall1"] = models.stall.mesh.clone();
     meshes["stall2"] = models.stall.mesh.clone();
     meshes["weapon"] = models.uzi.mesh.clone();
+    meshes["bullet"] = models.uziBullet.mesh.clone();
+    
 
     meshes["tree1"].position.set(2,-1,);
     scene.add(meshes.tree1);
@@ -295,7 +395,13 @@
 
     scene.add(meshes.weapon);
 
+   
+    meshes["bullet"].scale.set(10,10,10);
+    meshes["bullet"].position.set(0,0,4);
+    meshes["bullet"].rotation.x += Math.PI/2;
+  
     
+
   }
 
   animate =()=>{
@@ -329,5 +435,14 @@
   window.addEventListener('keydown',KeyDown);
   window.addEventListener('keyup',KeyUp);
   // window.addEventListener('mousemove',MouseMove);
+
+  window.addEventListener('resize',function(){
+    var width  = window.innerWidth;
+    var height = window.innerHeight;
+    renderer.setSize(width,height);
+    camera.aspect = width/height;
+    camera.updateProjectionMatrix();
+});
+
 
   window.onload = init;
